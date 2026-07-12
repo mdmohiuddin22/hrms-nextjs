@@ -3,20 +3,22 @@ import { prisma } from "@/lib/prisma";
 export default async function Dashboard() {
   const totalEmployees = await prisma.employee.count();
 
-  const departments = await prisma.employee.findMany({
-    select: { department: true },
-    distinct: ["department"],
-  });
-  const totalDepartments = departments.length;
+  const totalDepartments = await prisma.department.count();
 
-  const departmentStats = await prisma.employee.groupBy({
-    by: ["department"],
-    _count: { department: true },
+  const departmentStats = await prisma.department.findMany({
+    include: {
+      _count: {
+        select: { employees: true },
+      },
+    },
   });
 
   const recentEmployees = await prisma.employee.findMany({
     orderBy: { createdAt: "desc" },
     take: 5,
+    include: {
+      department: true,
+    },
   });
 
   return (
@@ -52,6 +54,7 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Department Stats */}
         <div className="bg-white rounded-xl shadow p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Department-wise Employees
@@ -62,12 +65,12 @@ export default async function Dashboard() {
             <ul className="space-y-3">
               {departmentStats.map((dept) => (
                 <li
-                  key={dept.department}
+                  key={dept.id}
                   className="flex justify-between items-center border-b pb-2"
                 >
-                  <span className="text-gray-700">{dept.department}</span>
+                  <span className="text-gray-700">{dept.name}</span>
                   <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                    {dept._count.department} জন
+                    {dept._count.employees} জন
                   </span>
                 </li>
               ))}
@@ -75,6 +78,7 @@ export default async function Dashboard() {
           )}
         </div>
 
+        {/* Recent Employees */}
         <div className="bg-white rounded-xl shadow p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Recently Added Employees
@@ -90,7 +94,9 @@ export default async function Dashboard() {
                 >
                   <div>
                     <p className="font-medium text-gray-800">{emp.name}</p>
-                    <p className="text-sm text-gray-500">{emp.department}</p>
+                    <p className="text-sm text-gray-500">
+                      {emp.department?.name}
+                    </p>
                   </div>
                   <span className="text-xs text-gray-400">
                     {new Date(emp.createdAt).toLocaleDateString()}

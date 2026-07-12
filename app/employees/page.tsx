@@ -3,18 +3,25 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
+type Department = {
+  id: number;
+  name: string;
+};
+
 type Employee = {
   id: number;
   name: string;
   email: string;
-  department: string;
+  department: Department;
 };
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [department, setDepartment] = useState("");
+  const [departmentId, setDepartmentId] = useState<number | "">("");
   const [editingId, setEditingId] = useState<number | null>(null);
 
   async function loadEmployees() {
@@ -23,15 +30,21 @@ export default function EmployeesPage() {
     setEmployees(data);
   }
 
+  async function loadDepartments() {
+    const response = await fetch("/api/departments");
+    const data = await response.json();
+    setDepartments(data);
+  }
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEmployees();
+    loadDepartments();
   }, []);
 
   function clearForm() {
     setName("");
     setEmail("");
-    setDepartment("");
+    setDepartmentId("");
     setEditingId(null);
   }
 
@@ -39,16 +52,22 @@ export default function EmployeesPage() {
     setEditingId(employee.id);
     setName(employee.name);
     setEmail(employee.email);
-    setDepartment(employee.department);
+    setDepartmentId(employee.department.id);
   }
 
   async function saveEmployee(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!departmentId) {
+      alert("Please select a department");
+      return;
+    }
+
     const method = editingId ? "PUT" : "POST";
+
     const body = editingId
-      ? { id: editingId, name, email, department }
-      : { name, email, department };
+      ? { id: editingId, name, email, departmentId }
+      : { name, email, departmentId };
 
     const response = await fetch("/api/employees", {
       method,
@@ -56,36 +75,25 @@ export default function EmployeesPage() {
       body: JSON.stringify(body),
     });
 
-    const savedEmployee = await response.json();
+    const result = await response.json();
 
     if (!response.ok) {
-      alert(savedEmployee.error || "Operation failed");
+      alert(result.error || "Operation failed");
       return;
     }
 
-    if (editingId) {
-      setEmployees(
-        employees.map((employee) =>
-          employee.id === savedEmployee.id ? savedEmployee : employee
-        )
-      );
-    } else {
-      setEmployees([savedEmployee, ...employees]);
-    }
-
     clearForm();
+    loadEmployees();
   }
 
   async function deleteEmployee(id: number) {
-    const response = await fetch("/api/employees", {
+    await fetch("/api/employees", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
 
-    if (response.ok) {
-      setEmployees(employees.filter((employee) => employee.id !== id));
-    }
+    loadEmployees();
   }
 
   return (
@@ -99,7 +107,7 @@ export default function EmployeesPage() {
           <input
             placeholder="Employee name"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(e) => setName(e.target.value)}
             required
           />
         </p>
@@ -109,18 +117,25 @@ export default function EmployeesPage() {
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
         </p>
 
+        {/* Department Dropdown */}
         <p>
-          <input
-            placeholder="Department"
-            value={department}
-            onChange={(event) => setDepartment(event.target.value)}
+          <select
+            value={departmentId}
+            onChange={(e) => setDepartmentId(Number(e.target.value))}
             required
-          />
+          >
+            <option value="">Select Department</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
         </p>
 
         <button type="submit">
@@ -148,8 +163,8 @@ export default function EmployeesPage() {
         <ul>
           {employees.map((employee) => (
             <li key={employee.id}>
-              {employee.name} — {employee.email} — {employee.department}
-
+              {employee.name} — {employee.email} —{" "}
+              {employee.department?.name}
               <button
                 type="button"
                 onClick={() => startEdit(employee)}

@@ -3,34 +3,40 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const employees = await prisma.employee.findMany({
-    orderBy: { id: "desc" },
+    include: {
+      department: true,
+    },
   });
 
   return NextResponse.json(employees);
 }
 
 export async function POST(request: Request) {
-  const { name, email, department } = await request.json();
+  try {
+    const body = await request.json();
 
-  if (!name || !email || !department) {
+    const employee = await prisma.employee.create({
+      data: {
+        name: body.name,
+        email: body.email,
+        departmentId: Number(body.departmentId),
+      },
+    });
+
+    return NextResponse.json(employee);
+  } catch (error) {
     return NextResponse.json(
-      { error: "All fields are required" },
-      { status: 400 }
+      { error: "Failed to create employee" },
+      { status: 500 }
     );
   }
-
-  const employee = await prisma.employee.create({
-    data: { name, email, department },
-  });
-
-  return NextResponse.json(employee, { status: 201 });
 }
 export async function PUT(request: Request) {
-  const { id, name, email, department } = await request.json();
+  const { id, name, email, departmentId } = await request.json();
 
   const employee = await prisma.employee.update({
     where: { id },
-    data: { name, email, department },
+    data: { name, email, departmentId: Number(departmentId) },
   });
 
   return NextResponse.json(employee);
