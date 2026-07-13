@@ -1,32 +1,35 @@
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function GET() {
-  const departments = await prisma.department.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const departments = await prisma.department.findMany({
+      orderBy: { id: "asc" },
+    });
 
-  return NextResponse.json(departments);
+    return NextResponse.json(departments);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to fetch departments" }, { status: 500 });
+  }
 }
 
-export async function POST(request: Request) {
-  const body = await request.json();
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
 
-  const department = await prisma.department.create({
-    data: {
-      name: body.name,
-    },
-  });
+    const department = await prisma.department.create({
+      data: {
+        name: body.name,
+      },
+    });
 
-  return NextResponse.json(department);
-}
-
-export async function DELETE(request: Request) {
-  const body = await request.json();
-
-  await prisma.department.delete({
-    where: { id: body.id },
-  });
-
-  return NextResponse.json({ message: "Deleted successfully" });
+    return NextResponse.json(department, { status: 201 });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
 }

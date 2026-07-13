@@ -2,98 +2,77 @@
 
 import { useEffect, useState } from "react";
 
-type Department = {
+interface Department {
   id: number;
   name: string;
-};
+}
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [name, setName] = useState("");
 
-  const fetchDepartments = async () => {
-    const res = await fetch("/api/departments");
-    const data = await res.json();
-    setDepartments(data);
-  };
-
   useEffect(() => {
     fetchDepartments();
   }, []);
 
-  const addDepartment = async () => {
-    if (!name.trim()) return;
+  async function fetchDepartments() {
+    const res = await fetch("/api/departments");
+    const data = await res.json();
+    setDepartments(data);
+  }
 
-    await fetch("/api/departments", {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    const res = await fetch("/api/departments", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
 
-    setName("");
-    fetchDepartments();
-  };
-
-  const deleteDepartment = async (id: number) => {
-    await fetch("/api/departments", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id }),
-    });
-
-    fetchDepartments();
-  };
+    if (res.ok) {
+      setName("");
+      fetchDepartments();
+    } else {
+      alert("Failed to add department");
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold mb-6">🏢 Departments</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Departments</h1>
 
-      {/* Add Form */}
-      <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <div className="flex gap-4">
-          <input
-            type="text"
-            placeholder="Department name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="border p-2 rounded w-full"
-          />
-          <button
-            onClick={addDepartment}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Add
-          </button>
-        </div>
-      </div>
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-6">
+        <input
+          type="text"
+          placeholder="Department name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          className="border px-3 py-2 rounded w-64"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Add
+        </button>
+      </form>
 
-      {/* List */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        {departments.length === 0 ? (
-          <p className="text-gray-400">No departments yet</p>
-        ) : (
-          <ul className="space-y-3">
-            {departments.map((dept) => (
-              <li
-                key={dept.id}
-                className="flex justify-between items-center border-b pb-2"
-              >
-                <span>{dept.name}</span>
-                <button
-                  onClick={() => deleteDepartment(dept.id)}
-                  className="text-red-600 hover:underline"
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {departments.length === 0 ? (
+        <p>No departments yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {departments.map((dept) => (
+            <li
+              key={dept.id}
+              className="border px-3 py-2 rounded bg-gray-50"
+            >
+              {dept.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

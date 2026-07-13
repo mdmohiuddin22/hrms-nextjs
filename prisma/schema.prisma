@@ -9,13 +9,15 @@ datasource db {
 }
 
 model Employee {
-  id           Int          @id @default(autoincrement())
-  name         String
-  email        String       @unique
+  id           Int        @id @default(autoincrement())
+  employeeCode String     @unique
+  firstName    String
+  lastName     String
+  fullName     String
   departmentId Int
-  department   Department   @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
   attendances  Attendance[]
-  createdAt    DateTime     @default(now())
+  createdAt    DateTime   @default(now())
 }
 
 model Department {
@@ -30,6 +32,8 @@ model Attendance {
   employeeId Int
   employee   Employee @relation(fields: [employeeId], references: [id])
   date       DateTime
-  status     String
+  status     String   // SQL Server-এ Enum সাপোর্ট করে না
   createdAt  DateTime @default(now())
+
+  @@map("Attendance")
 }
