@@ -1,10 +1,21 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id           Int          @id @default(autoincrement())
+  name         String
+  email        String       @unique
+  departmentId Int
+  department   Department   @relation(fields: [departmentId], references: [id])
+  attendances  Attendance[]
+  createdAt    DateTime     @default(now())
 }
 
 model Department {
@@ -14,11 +25,11 @@ model Department {
   createdAt DateTime   @default(now())
 }
 
-model Employee {
-  id           Int        @id @default(autoincrement())
-  name         String
-  email        String     @unique
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now())
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  date       DateTime
+  status     String
+  createdAt  DateTime @default(now())
 }
